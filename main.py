@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from pydantic import AnyHttpUrl
 from datetime import datetime
 from typing import Optional, Any
-import openai 
+import openai
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,10 +18,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class JWTTokenVerifier(TokenVerifier):
     """JWT token verifier using Asgardeo JWKS."""
-
+    
+    
     def __init__(self, jwks_url: str, issuer: str, client_id: str):
         self.jwt_validator = JWTValidator(
             jwks_url=jwks_url,
@@ -29,20 +29,20 @@ class JWTTokenVerifier(TokenVerifier):
             audience=client_id,
             ssl_verify=True  # Set to False for development if needed
         )
-
+    
     async def verify_token(self, token: str) -> AccessToken | None:
         try:
             # Validate the JWT token
             payload = await self.jwt_validator.validate_token(token)
-
+            
             # Extract information from the validated token
             expires_at = payload.get("exp")
             scopes = payload.get("scope", "").split() if payload.get("scope") else []
             subject = payload.get("sub")
             audience = payload.get("aud")
-
+            
             logger.info(f"Token validated successfully for subject: {subject}")
-
+            
             return AccessToken(
                 token=token,
                 client_id=audience if isinstance(audience, str) else self.jwt_validator.audience,
@@ -55,7 +55,6 @@ class JWTTokenVerifier(TokenVerifier):
         except Exception as e:
             logger.error(f"Unexpected error during token validation: {e}")
             return None
-
 
 AUTH_ISSUER = os.getenv("AUTH_ISSUER")
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -206,77 +205,7 @@ async def book_vet_appointment(
         error_message = str(error)
         logger.error(f"Failed to book appointment: {error_message}")
         raise ValueError(f"Failed to book appointment: {error_message}")
-    
 
-
-
-@mcp.tool()
-async def book_vet_appointment(
-    pet_id: str,
-    date: str,
-    time: str,
-    reason: str
-) -> dict[str, Any]:
-    """
-    Books a new veterinary appointment for a specific pet.
-    Requires user authentication and explicit consent via an authorization token.
-    
-    Args:
-        pet_id: The unique identifier for the pet
-        date: Desired date for the appointment (e.g., YYYY-MM-DD)
-        time: Desired time for the appointment (e.g., HH:MM AM/PM)
-        reason: The reason for the vet visit
-        
-    Returns:
-        Dictionary containing appointment confirmation details
-    """
-    try:
-        # Validate date format
-        try:
-            datetime.strptime(date, "%Y-%m-%d")
-        except ValueError:
-            raise ValueError("Invalid date format. Please use YYYY-MM-DD format.")
-        
-        # Simulate appointment booking
-        # In a real application, you would:
-        # 1. Check vet availability
-        # 2. Insert into appointments database
-        # 3. Send confirmation email/SMS
-        
-        appointment_id = f"APT-{pet_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        appointment_details = {
-            "appointment_id": appointment_id,
-            "pet_id": pet_id,
-            "date": date,
-            "time": time,
-            "reason": reason,
-            "status": "confirmed",
-            "veterinarian": "Dr. Smith",
-            "clinic_name": "Happy Paws Veterinary Clinic",
-            "clinic_address": "123 Main Street, City, State 12345",
-            "confirmation_message": f"Appointment successfully booked for pet ID: {pet_id} on {date} at {time}",
-            "reminder": "Please arrive 10 minutes early for check-in",
-            "cancellation_policy": "Please cancel at least 24 hours in advance",
-            "booked_at": datetime.now().isoformat(),
-            "token_status": "Token was present and validated"
-        }
-        
-        logger.info(
-            f"Booked vet appointment for pet ID: {pet_id} on {date} at {time} for: {reason}"
-        )
-        
-        return appointment_details
-        
-    except ValueError as ve:
-        error_message = str(ve)
-        logger.error(f"Validation error: {error_message}")
-        raise ValueError(f"Failed to book appointment: {error_message}")
-    except Exception as error:
-        error_message = str(error)
-        logger.error(f"Failed to book appointment: {error_message}")
-        raise ValueError(f"Failed to book appointment: {error_message}")
-    
 @mcp.tool()
 async def cancel_appinment(appointment_id: str, reason: str) -> dict[str, Any]:
     """
@@ -285,7 +214,6 @@ async def cancel_appinment(appointment_id: str, reason: str) -> dict[str, Any]:
     
     Args:
         appointment_id: The unique identifier for the appointment to be canceled
-
     """
     try:
         cancelllation_details = {
@@ -296,14 +224,13 @@ async def cancel_appinment(appointment_id: str, reason: str) -> dict[str, Any]:
             "confirmation_message": f"Appointment {appointment_id} has been successfully canceled.",
             "refund_policy": "Refunds will be processed within 5-7 business days if applicable.",
         }
-
+        
         logger.info(f"Canceled appointment ID: {appointment_id} for reason: {reason}")
         return cancelllation_details
     except Exception as error:
         error_message = str(error)
         logger.error(f"Failed to cancel appointment: {error_message}")
         raise ValueError(f"Failed to cancel appointment: {error_message}")
-    
 
 @mcp.tool()
 async def suggest_pet_names(
@@ -327,14 +254,14 @@ async def suggest_pet_names(
         # Ensure OpenAI API key is set from environment if available
         if OPENAI_API_KEY and not openai.api_key:
             openai.api_key = OPENAI_API_KEY
-
+        
         if not openai.api_key:
             raise ValueError("OpenAI API key is not configured. Please set OPENAI_API_KEY in environment variables.")
         
         category = category.lower().strip()
         gender = gender.lower().strip()
         count = min(max(count, 1), 20)
-
+        
         valid_categories = ["dog", "cat", "bird", "rabbit", "hamster", "fish", "guinea pig", "ferret", "turtle", "lizard", "snake"]
         if category not in valid_categories:
             raise ValueError(f"Invalid category. Please choose from: {', '.join(valid_categories)}")
@@ -374,7 +301,7 @@ Generate creative, diverse names that aren't too common. Mix traditional and uni
             raise ValueError("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.")
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini", 
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -385,7 +312,7 @@ Generate creative, diverse names that aren't too common. Mix traditional and uni
                     "content": prompt
                 }
             ],
-            temperature=0.8,  
+            temperature=0.8,
             max_tokens=1500
         )
         
@@ -445,7 +372,6 @@ Generate creative, diverse names that aren't too common. Mix traditional and uni
         error_message = str(error)
         logger.error(f"Unexpected error generating pet names: {error_message}")
         raise ValueError(f"Failed to generate pet names: {error_message}")
-
 
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
